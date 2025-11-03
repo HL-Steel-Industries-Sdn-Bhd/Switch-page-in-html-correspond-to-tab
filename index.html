@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Plan Viewer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #topBar { display: flex; justify-content: center; align-items: center; margin-bottom: 20px; gap: 20px; }
+    .arrow { cursor: pointer; font-size: 20px; padding: 5px 15px; background: #f0f0f0; border-radius: 6px; }
+    #dateDisplay { font-weight: bold; font-size: 20px; }
+
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      min-width: 80px;
+    }
+    th { background: #e8f4ff; }
+    td:first-child, th:first-child { background: #ffeccb; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div id="topBar">
+  <div class="arrow" onclick="prevDay()">⬅</div>
+  <div id="dateDisplay"></div>
+  <div class="arrow" onclick="nextDay()">➡</div>
+</div>
+
+<div id="tableContainer">Loading...</div>
+
+<script>
+  const apiUrl = "https://script.google.com/macros/s/AKfycbz1m-hHOWZXQUbswjneySr78y-7UJIQ99442nSt6EkkO14yhuTzSteWF3ZyBHD9-qpB3g/exec"; // ← 替换这里
+
+  let sheetsList = [];
+  let currentIndex = -1;
+
+  async function loadSheet(sheetName) {
+    document.getElementById("tableContainer").innerHTML = "Loading...";
+    const res = await fetch(`${apiUrl}?sheet=${sheetName}`);
+    const json = await res.json();
+
+    if (json.error) {
+      document.getElementById("tableContainer").innerHTML = "Error: " + json.error;
+      return;
+    }
+
+    sheetsList = json.sheets;
+    currentIndex = sheetsList.indexOf(sheetName);
+    document.getElementById("dateDisplay").innerText = sheetName.replace("WP-", "");
+
+    const data = json.data;
+    let html = "<table>";
+
+    // Header
+    html += "<tr>";
+    data[0].forEach(h => html += `<th>${h || ""}</th>`);
+    html += "</tr>";
+
+    // Rows
+    for (let r = 1; r < data.length; r++) {
+      html += "<tr>";
+      data[r].forEach(c => html += `<td>${c || ""}</td>`);
+      html += "</tr>";
+    }
+
+    html += "</table>";
+    document.getElementById("tableContainer").innerHTML = html;
+  }
+
+  function prevDay() {
+    if (currentIndex > 0) loadSheet(sheetsList[currentIndex - 1]);
+  }
+
+  function nextDay() {
+    if (currentIndex < sheetsList.length - 1) loadSheet(sheetsList[currentIndex + 1]);
+  }
+
+  // Auto load today’s sheet
+  window.onload = () => {
+    // 找表名包含今天日期，例如 WP-3Nov2025
+    const today = new Date();
+    const d = today.getDate();
+    const m = today.toLocaleString('en-US', { month: 'short' });
+    const y = today.getFullYear();
+    const todayName = `WP-${d}${m}${y}`;
+
+    loadSheet(todayName);
+  };
+</script>
+
+</body>
+</html>
