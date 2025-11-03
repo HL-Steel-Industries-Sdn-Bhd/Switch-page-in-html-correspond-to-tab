@@ -25,20 +25,49 @@
 
 <div id="topBar">
   <div class="arrow" onclick="prevDay()">⬅</div>
-  <div id="dateDisplay"></div>
+  <div id="dateDisplay">Loading...</div>
   <div class="arrow" onclick="nextDay()">➡</div>
 </div>
 
 <div id="tableContainer">Loading...</div>
 
 <script>
-  const apiUrl = "https://script.google.com/macros/s/AKfycbz1m-hHOWZXQUbswjneySr78y-7UJIQ99442nSt6EkkO14yhuTzSteWF3ZyBHD9-qpB3g/exec"; // ← 替换这里
+  const apiUrl = "YOUR_WEB_APP_URL_HERE"; // ← 替换成你的 Web App URL
 
   let sheetsList = [];
-  let currentIndex = -1;
+  let currentIndex = 0;
+
+  async function init() {
+    document.getElementById("dateDisplay").innerText = "Loading...";
+    const res = await fetch(apiUrl);
+    const json = await res.json();
+
+    sheetsList = json.availableSheets || json.sheets || [];
+
+    if (!sheetsList.length) {
+      document.getElementById("tableContainer").innerHTML = "⚠ No WP tabs found.";
+      return;
+    }
+
+    const todaySheet = getTodaySheetName();
+    const target = sheetsList.includes(todaySheet)
+      ? todaySheet
+      : sheetsList[sheetsList.length - 1]; // fallback → latest
+
+    loadSheet(target);
+  }
+
+  function getTodaySheetName() {
+    const today = new Date();
+    const d = today.getDate();
+    const m = today.toLocaleString('en-US', { month: 'short' });
+    const y = today.getFullYear();
+    return `WP-${d}${m}${y}`;
+  }
 
   async function loadSheet(sheetName) {
     document.getElementById("tableContainer").innerHTML = "Loading...";
+
     const res = await fetch(`${apiUrl}?sheet=${sheetName}`);
     const json = await res.json();
 
@@ -47,7 +76,7 @@
       return;
     }
 
-    sheetsList = json.sheets;
+    sheetsList = json.sheets || sheetsList;
     currentIndex = sheetsList.indexOf(sheetName);
     document.getElementById("dateDisplay").innerText = sheetName.replace("WP-", "");
 
@@ -78,17 +107,7 @@
     if (currentIndex < sheetsList.length - 1) loadSheet(sheetsList[currentIndex + 1]);
   }
 
-  // Auto load today’s sheet
-  window.onload = () => {
-    // 找表名包含今天日期，例如 WP-3Nov2025
-    const today = new Date();
-    const d = today.getDate();
-    const m = today.toLocaleString('en-US', { month: 'short' });
-    const y = today.getFullYear();
-    const todayName = `WP-${d}${m}${y}`;
-
-    loadSheet(todayName);
-  };
+  window.onload = init;
 </script>
 
 </body>
